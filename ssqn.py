@@ -201,8 +201,6 @@ class SewageQuality:
             self.logger.log.info("\n####################################################\n"
                                  "\tSewage location: {} "
                                  "\n####################################################".format(sample_location))
-            if not "Augsburg_Stadt" in sample_location:
-                continue
             plausibility_dict, measurements = self.__setup(sample_location, measurements)
             ### Plausibilitätscheck: dict with the index of the odd values
             if len(plausibility_dict) > 0:
