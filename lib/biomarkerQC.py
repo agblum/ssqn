@@ -50,12 +50,6 @@ class BiomarkerQC:
                 SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.get_biomarker_flag(biomarker), SewageFlag.BIOMARKER_BELOW_THRESHOLD_OR_EMPTY)
                 self.sewageStat.add_biomarker_below_threshold_or_empty(biomarker)
 
-    def standardize_biomarker_values(self, sample_location,  measurements: pd.DataFrame):
-        for biomarker in Columns.get_biomarker_columns():
-            index = measurements.columns.get_loc(biomarker)
-            standardized_biomarker = ( measurements[biomarker] - measurements[biomarker].mean()) / measurements[biomarker].std()
-            measurements.insert(index + 1, biomarker+"_zscore", standardized_biomarker)
-
     def calculate_biomarker_ratios(self, sample_location, measurements: pd.DataFrame, index):
         """
         Calculate pairwise biomarker ratios only if both are above the minimal threshold level.
@@ -68,12 +62,12 @@ class BiomarkerQC:
                                                        SewageFlag.BIOMARKER_BELOW_THRESHOLD_OR_EMPTY)
             is_biomarker2_flagged = SewageFlag.is_flag(current_measurement[CalculatedColumns.get_biomarker_flag(biomarker2)],
                                                        SewageFlag.BIOMARKER_BELOW_THRESHOLD_OR_EMPTY)
-            biomarker1_value, biomarker2_value = current_measurement[biomarker1 + "_zscore"], current_measurement[biomarker2 + "_zscore"]
+            biomarker1_value, biomarker2_value = current_measurement[biomarker1], current_measurement[biomarker2]
             if is_biomarker1_flagged or is_biomarker2_flagged or biomarker1_value == 0 or biomarker2_value == 0:
                 measurements.at[index, biomarker1 + "/" + biomarker2] = np.NAN
             else:
                 last_biomarker_ratios = self.__get_previous_biomarkers_ratios(measurements, index, biomarker1, biomarker2)
-                last_biomarker_ratio_median = np.median(last_biomarker_ratios[biomarker1+"_zscore"] / last_biomarker_ratios[biomarker2+"_zscore"]) if len(last_biomarker_ratios) > 0 else np.NAN
+                last_biomarker_ratio_median = np.median(last_biomarker_ratios[biomarker1] / last_biomarker_ratios[biomarker2]) if len(last_biomarker_ratios) > 0 else np.NAN
                 if not np.isnan(last_biomarker_ratio_median):
                     measurements.at[index, biomarker1 + "/" + biomarker2] = (biomarker1_value / biomarker2_value) / last_biomarker_ratio_median
                 else:
@@ -93,7 +87,7 @@ class BiomarkerQC:
         biomarker_ratio_flags = last_N_measurements[CalculatedColumns.get_biomaker_ratio_flag(biomarker1, biomarker2)]
         last_N_measurements = last_N_measurements[SewageFlag.is_not_flag_set_for_series(biomarker_ratio_flags,
                                                                                         SewageFlag.BIOMARKER_RATIO_OUTLIER)]
-        biomarker_ratios = last_N_measurements[[Columns.DATE.value, biomarker1 + "/" + biomarker2, biomarker1+"_zscore", biomarker2+"_zscore"]]
+        biomarker_ratios = last_N_measurements[[Columns.DATE.value, biomarker1 + "/" + biomarker2, biomarker1, biomarker2]]
         # remove empty ratios
         biomarker_ratios = biomarker_ratios.dropna()
         return biomarker_ratios

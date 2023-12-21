@@ -210,7 +210,6 @@ class SewageQuality:
             progress_bar = self.logger.get_progress_bar(CalculatedColumns.get_num_of_unprocessed(measurements), "Analyzing samples")
             self.sewageStat.set_sample_location_and_total_number(sample_location, CalculatedColumns.get_num_of_unprocessed(measurements))
             changes_detected = False
-            self.biomarkerQC.standardize_biomarker_values(sample_location, measurements)
             for index, current_measurement in measurements.iterrows():
                 if CalculatedColumns.needs_processing(current_measurement):
                     changes_detected = True
