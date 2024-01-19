@@ -15,8 +15,12 @@ pip install git+https://github.com/axgraf/sewageQualityControl.git
 ssqn.py --help
 ```
 
+## Citation 
+SSQN can be used and adapted for non-commercial or commercial usage following the CC-BY license. Credit should be given to the authors by including the following citation
 
+```
+Development of a GIS Data Model to Report Biomarker Results to Health Authorities and the Public. Kau et al. 2024.
 
-
+```
 
 
