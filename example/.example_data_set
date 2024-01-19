@@ -1,0 +1,1 @@
+This example xlsx Table can be used to test the functionality of the SSQN. SSQN will iterate through the different sheets of the excel table, treating each sheet as an individual site.
