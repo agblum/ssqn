@@ -87,7 +87,7 @@ class SewageDatabase:
                 indices = []
                 for index, row in new_measurements.iterrows():
                     needs_recalculation = True
-                    db_row = db_measurements[db_measurements[Columns.DATE.value] == row[Columns.DATE.value]]
+                    db_row = db_measurements[db_measurements[Columns.DATE] == row[Columns.DATE]]
                     if db_row.shape[0] > 0:
                         stored_checksums_list = self.__get_checksum_for_row(db_row.squeeze())
                         new_checksum = self.__get_checksum_for_row(row)[0]
@@ -99,8 +99,8 @@ class SewageDatabase:
                                 indices.append(db_row.index.tolist()[0])
                     new_measurements.at[index, CalculatedColumns.NEEDS_PROCESSING.value] = needs_recalculation
                 update_df = db_measurements.iloc[indices]
-                new_measurements.set_index(Columns.DATE.value, inplace=True)
-                new_measurements.update(update_df.set_index(Columns.DATE.value))
+                new_measurements.set_index(Columns.DATE, inplace=True)
+                new_measurements.update(update_df.set_index(Columns.DATE))
                 new_measurements.reset_index(inplace=True)
                 self.__set_dtypes(new_measurements)
             else:

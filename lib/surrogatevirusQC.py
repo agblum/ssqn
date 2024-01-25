@@ -25,7 +25,7 @@ class SurrogateVirusQC:
          Get rid of rainy days
          """
         current_measurement = measurements.iloc[index]
-        if current_measurement[Columns.TROCKENTAG.value].lower().strip() != "ja":
+        if current_measurement[Columns.TROCKENTAG].lower().strip() != "ja":
             SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value,
                                                 SewageFlag.SURROGATEVIRUS_VALUE_NOT_USABLE)
 
@@ -34,10 +34,10 @@ class SurrogateVirusQC:
           Timeframe of n month, all surrogatevirus measurements that are set and are not flagged
         """
         #get current timeframe eg. last 4 month from current measurement
-        start_timeframe = self.__get_start_timeframe(current_measurement[Columns.DATE.value])
+        start_timeframe = self.__get_start_timeframe(current_measurement[Columns.DATE])
 
-        current_timeframe = measurements_df[(measurements_df[Columns.DATE.value] > start_timeframe) &
-                                            (measurements_df[Columns.DATE.value] < current_measurement[Columns.DATE.value])]
+        current_timeframe = measurements_df[(measurements_df[Columns.DATE] > start_timeframe) &
+                                            (measurements_df[Columns.DATE] < current_measurement[Columns.DATE])]
 
         # get rid of empty measurements
         current_timeframe = current_timeframe[current_timeframe[sVirus].notna()]
@@ -46,7 +46,7 @@ class SurrogateVirusQC:
         current_timeframe = current_timeframe[(SewageFlag.is_not_flag_set_for_series(current_timeframe[CalculatedColumns.FLAG.value],SewageFlag.SURROGATEVIRUS_VALUE_NOT_USABLE)) &
                                                (SewageFlag.is_not_flag_set_for_series(current_timeframe[CalculatedColumns.FLAG.value],CalculatedColumns.get_surrogate_outlier_flag(sVirus)))]
 
-        sVirus_values_to_take = current_timeframe[[Columns.DATE.value, sVirus]]
+        sVirus_values_to_take = current_timeframe[[Columns.DATE, sVirus]]
 
         return sVirus_values_to_take
 

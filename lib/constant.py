@@ -179,16 +179,18 @@ class CalculatedColumns(Enum):
         return self._value_[0]
     @staticmethod
     def get_biomarker_flag_columns() -> []:
-        biomarker_flag_columns = [CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N1.value),
-                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N2.value),
-                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N3.value),
-                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_E.value),
-                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_ORF.value),
-                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_RDRP.value)]
+        biomarker_flag_columns = [CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N1),
+                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N2),
+                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_N3),
+                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_E),
+                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_ORF),
+                                  CalculatedColumns.get_biomarker_flag(Columns.BIOMARKER_RDRP)]
         return biomarker_flag_columns
 
     @staticmethod
     def needs_processing(row: pd.Series) -> bool:
+        if Columns.is_value_present("VALUECHANGED"):
+            return row[Columns.VALUECHANGED]
         if CalculatedColumns.NEEDS_PROCESSING.value in row:
             return row[CalculatedColumns.NEEDS_PROCESSING.value]
         else:
@@ -211,11 +213,10 @@ class CalculatedColumns(Enum):
 
     @staticmethod
     def get_surrogate_outlier_flag(sVirus) -> SewageFlag:
-
         outlier_flag = ""
-        if sVirus == Columns.PMMOV.value:
+        if sVirus == Columns.PMMOV:
             outlier_flag = SewageFlag.SURROGATEVIRUS_OUTLIER_PMMOV
-        elif sVirus == Columns.CRASSPHAGE.value:
+        elif sVirus == Columns.CRASSPHAGE:
             outlier_flag = SewageFlag.SURROGATEVIRUS_OUTLIER_CRASSPHAGE
 
         return outlier_flag
@@ -232,7 +233,7 @@ class CalculatedColumns(Enum):
         measurements_df.at[index, CalculatedColumns.OUTLIER_REASON.value] = values
 
 
-class Columns(Enum):
+class Columns:
     # columns used in sample dataframe #
     DATE = "collectionDate"
     COMMENT_ANALYSIS = "bem_lab"
@@ -250,15 +251,24 @@ class Columns(Enum):
     PMMOV = "pmmov"
     TROCKENTAG = "trockentag"
 
+    @classmethod
+    def is_value_present(cls, variable_name_to_check):
+        return hasattr(Columns, variable_name_to_check)
+
+
+    @classmethod
+    def value(cls, attribute):
+        return getattr(cls, attribute, None)
+
     @staticmethod
     def get_biomarker_columns():
-        biomarker_columns = [Columns.BIOMARKER_N1.value, Columns.BIOMARKER_N2.value,
-                             Columns.BIOMARKER_N3.value, Columns.BIOMARKER_E.value,
-                             Columns.BIOMARKER_ORF.value, Columns.BIOMARKER_RDRP.value]
+        biomarker_columns = [Columns.BIOMARKER_N1, Columns.BIOMARKER_N2,
+                             Columns.BIOMARKER_N3, Columns.BIOMARKER_E,
+                             Columns.BIOMARKER_ORF, Columns.BIOMARKER_RDRP]
         return biomarker_columns
 
     @staticmethod
     def get_surrogatevirus_columns():
-        surrogatevirus_columns = [Columns.CRASSPHAGE.value, Columns.PMMOV.value]
+        surrogatevirus_columns = [Columns.CRASSPHAGE, Columns.PMMOV]
         return surrogatevirus_columns
-   
+

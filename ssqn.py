@@ -21,12 +21,13 @@ import lib.utils as utils
 import lib.statistics as sewageStat
 import lib.plotting as plotting
 import lib.database as db
+import lib.bay_voc as bayvoc
 import re
 
 
 class SewageQuality:
 
-    def __init__(self, input_file, config_file, output_folder, verbosity, quiet, rerun_all, biomarker_outlier_statistics,
+    def __init__(self, input_file, config_file, output_folder, verbosity, quiet, rerun_all, no_plots, biomarker_outlier_statistics,
                  min_biomarker_threshold, min_number_biomarkers_for_outlier_detection,
                  max_number_biomarkers_for_outlier_detection, report_number_of_biomarker_outlier, periode_month_surrogatevirus,
                  surrogatevirus_outlier_statistics, min_number_surrogatevirus_for_outlier_detection,
@@ -43,6 +44,7 @@ class SewageQuality:
         self.verbosity = verbosity
         self.quiet = quiet
         self.rerun_all = rerun_all
+        self.no_plots = no_plots
         # biomarker qc
         self.biomarker_outlier_statistics = biomarker_outlier_statistics
         self.min_biomarker_threshold = min_biomarker_threshold
@@ -77,19 +79,11 @@ class SewageQuality:
         if self.input_file:
             self.sewage_samples_dict = utils.read_excel_input_files(self.input_file)
         elif self.config_file:
-            # Todo: switch to real data import
             config = Config(self.config_file)
-#            arcgis = Arcgis(config)
-#            sewage_samples_dict = arcgis.obtain_sewage_samples()
-#            self.sewage_samples_dict = dict()
-#            for loc, samples_list in sewage_samples_dict.items():
-#                if 'A-STADT' in loc:
-#                    self.sewage_samples_dict[loc] = pd.DataFrame(s.__dict__ for s in samples_list)
-#           # bayvoc = bayVocConn.BayVOC(config)
-#           # self.sewage_samples_dict = bayvoc.read_all_sewagesamples_from_db()
-#        # arcgis = Arcgis(Config(self.config))
-#        # self.sewage_samples = arcgis.obtain_sewage_samples()
-
+            self.bayVOC = bayvoc.BayVoc(config)
+            self.bayVOC.authenticate()
+            self.bayVOC.get_sewage_sample_data()
+            self.sewage_samples_dict = self.bayVOC.iterate_locations()
         self.sewage_plants2trockenwetterabfluss = dict()
 
     def __initialize(self):
@@ -120,9 +114,12 @@ class SewageQuality:
             measurements[biomarker1 + "/" + biomarker2] = np.NAN
             measurements[CalculatedColumns.get_biomaker_ratio_flag(biomarker1, biomarker2)] = 0
         for c in CalculatedColumns:
-            if not c.value in measurements:
+            if not c in measurements:
                 if c.type == bool:
-                    measurements[c.value] = False
+                    if c.value == CalculatedColumns.NEEDS_PROCESSING.value:
+                        measurements[c.value] = True
+                    else:
+                        measurements[c.value] = False
                 elif c.type == str:
                     measurements[c.value] = ""
                 else:
@@ -133,58 +130,58 @@ class SewageQuality:
         result_folder = os.path.join(self.output_folder, "results")
         if not os.path.exists(result_folder):
             os.makedirs(result_folder)
-        output_file = os.path.join(result_folder, "normalized_sewage_{}.xlsx".format(sample_location))
+        output_file = os.path.join(result_folder, "normalized_sewage_{}.xlsx".format(sample_location.replace("/","_")))
         measurements.to_excel(output_file, index=False)
 
     def __setup(self, sample_location, measurements: pd.DataFrame):
         plausibility_dict = {}
         measurements = measurements.fillna(value=np.nan)
-        measurements[Columns.DATE.value] = measurements[Columns.DATE.value].replace({r'(\d+-\d+-\d+).*': r'\1'}, regex=True)
+        measurements[ Columns.DATE] = measurements[ Columns.DATE].replace({r'(\d+-\d+-\d+).*': r'\1'}, regex=True)
 
         # check if the date format is YYYY-mm-dd
-        format_not_plausible = measurements[measurements[Columns.DATE.value].str.contains("[\d{4}\-\d{2}\-\d{2}]").eq(False)].index.tolist()
+        format_not_plausible = measurements[measurements[ Columns.DATE].str.contains("[\d{4}\-\d{2}\-\d{2}]").eq(False)].index.tolist()
         if len(format_not_plausible) > 0:
             plausibility_dict["format_not_plausible_index"] = format_not_plausible
-        measurements[Columns.DATE.value] = pd.to_datetime(measurements[Columns.DATE.value], format="%Y-%m-%d").dt.normalize()
+        measurements[ Columns.DATE] = pd.to_datetime(measurements[ Columns.DATE], format="%Y-%m-%d").dt.normalize()
 
         # check if the year of the measurement is plausible: Corona pandemic started in 2020
-        year_not_plausible = measurements[(measurements[Columns.DATE.value].dt.year > pd.to_datetime("2019", format="%Y").year).eq(False)].index.tolist()
+        year_not_plausible = measurements[(measurements[ Columns.DATE].dt.year > pd.to_datetime("2019", format="%Y").year).eq(False)].index.tolist()
         if len(year_not_plausible) > 0:
             plausibility_dict["year_not_plausible_index"] = year_not_plausible
 
         # check if the month value is <=12
-        month_not_plausible = measurements[(measurements[Columns.DATE.value].dt.month <= pd.to_datetime("12", format="%m").month).eq(False)].index.tolist()
+        month_not_plausible = measurements[(measurements[ Columns.DATE].dt.month <= pd.to_datetime("12", format="%m").month).eq(False)].index.tolist()
         if len(month_not_plausible) > 0:
             plausibility_dict["month_not_plausible_index"] = month_not_plausible
 
         # check if the month value is <=31
-        day_not_plausible = measurements[(measurements[Columns.DATE.value].dt.day <= pd.to_datetime("31", format="%d").day).eq(False)].index.tolist()
+        day_not_plausible = measurements[(measurements[ Columns.DATE].dt.day <= pd.to_datetime("31", format="%d").day).eq(False)].index.tolist()
         if len(day_not_plausible) > 0:
             plausibility_dict["day_not_plausible_index"] = day_not_plausible
 
         # setup comment fields
-        measurements[[Columns.COMMENT_ANALYSIS.value, Columns.COMMENT_OPERATION.value]] = \
-            measurements[[Columns.COMMENT_ANALYSIS.value, Columns.COMMENT_OPERATION.value]].apply(
+        measurements[[ Columns.COMMENT_ANALYSIS,  Columns.COMMENT_OPERATION]] = \
+            measurements[[ Columns.COMMENT_ANALYSIS,  Columns.COMMENT_OPERATION]].apply(
                 lambda x: x.astype(str).str.strip()
             )
-        measurements[[Columns.COMMENT_ANALYSIS.value, Columns.COMMENT_OPERATION.value]] = \
-            measurements[[Columns.COMMENT_ANALYSIS.value, Columns.COMMENT_OPERATION.value]].replace('nan', '')
-        measurements[[Columns.TROCKENTAG.value]] = measurements[[Columns.TROCKENTAG.value]].astype(str)
+        measurements[[ Columns.COMMENT_ANALYSIS,  Columns.COMMENT_OPERATION]] = \
+            measurements[[ Columns.COMMENT_ANALYSIS,  Columns.COMMENT_OPERATION]].replace('nan', '')
+        measurements[[ Columns.TROCKENTAG]] = measurements[[ Columns.TROCKENTAG]].astype(str)
         # measurements = measurements.drop(columns=["flags"])   # artefact from stored data --> will be removed later
         # measurements = utils.convert_sample_list2pandas(measurements)
         # Sort by collection date. Newest last.
-        measurements.sort_values(by=Columns.DATE.value, ascending=True, inplace=True, ignore_index=True)
+        measurements.sort_values(by= Columns.DATE, ascending=True, inplace=True, ignore_index=True)
         self.__initalize_columns(measurements)
         self.database.needs_recalcuation(sample_location, measurements, self.rerun_all)
         return plausibility_dict, measurements
 
     def __is_plot_not_generated(self, sample_location):
-        return not os.path.exists(os.path.join(self.output_folder, "plots", "{}.plots.pdf".format(sample_location)))
+        return not os.path.exists(os.path.join(self.output_folder, "plots", "{}.plots.pdf".format(sample_location.replace("/", "_"))))
 
     def __plot_results(self, measurements: pd.DataFrame, sample_location):
         if not os.path.exists(os.path.join(self.output_folder, "plots")):
             os.makedirs(os.path.join(self.output_folder, "plots"))
-        pdf_pages = PdfPages(os.path.join(self.output_folder, "plots", "{}.plots.pdf".format(sample_location)))
+        pdf_pages = PdfPages(os.path.join(self.output_folder, "plots", "{}.plots.pdf".format(sample_location.replace("/", "_"))))
         plotting.plot_biomarker_outlier_summary(pdf_pages, measurements, sample_location, self.biomarker_outlier_statistics)
         plotting.plot_surrogatvirus(pdf_pages, measurements, sample_location, self.surrogatevirus_outlier_statistics)
         plotting.plot_sewage_flow(pdf_pages, measurements, sample_location)
@@ -250,13 +247,17 @@ class SewageQuality:
             if changes_detected or self.__is_plot_not_generated(sample_location):
                 self.logger.log.info(self.sewageStat.print_statistics())
                 self.logger.log.info("Generating plots...")
-                self.__plot_results(measurements, sample_location)
+                if not self.no_plots:
+                    self.__plot_results(measurements, sample_location)
                 # Experimental: Final step explain flags
                 measurements['flags_explained'] = SewageFlag.explain_flag_series(measurements[CalculatedColumns.FLAG.value])
                 self.logger.log.info("Add '{}' to database...".format(sample_location))
                 self.database.add_sewage_location2db(sample_location, measurements)
                 self.logger.log.info("Export '{}' to excel file...".format(sample_location))
                 self.save_dataframe(sample_location, measurements)
+                if self.config_file:
+                    self.bayVOC.post_normalized_sewage_samples(sample_location, measurements)
+
 
 
 
@@ -274,6 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_folder', metavar="FOLDER", default="sewage_qc", type=str,
                         help="Specifiy output folder. (default folder: 'sewage_qc')",
                         required=False)
+    parser.add_argument('-p', '--no_plotting', action="store_true", help="Do not output any plots.")
     parser.add_argument('-r', '--rerun_all', action="store_true", help="Rerun the analysis on all samples.")
     parser.add_argument('-v', '--verbosity', action="count", help="Increase output verbosity.")
     parser.add_argument('-q', '--quiet', action='store_true', help="Print litte output.")
@@ -390,7 +392,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    sewageQuality = SewageQuality(args.input, args.config, args.output_folder, args.verbosity, args.quiet, args.rerun_all,
+    sewageQuality = SewageQuality(args.input, args.config, args.output_folder, args.verbosity, args.quiet, args.rerun_all, args.no_plotting,
                                   args.biomarker_outlier_statistics, args.biomarker_min_threshold,
                                   args.min_number_biomarkers_for_outlier_detection,
                                   args.max_number_biomarkers_for_outlier_detection,

@@ -25,15 +25,15 @@ class BiomarkerQC:
     def check_comments(self, sample_location: str, measurements: pd.DataFrame, index):
         """ Flags a sewage sample if any text is stored in column 'bem_lab' or 'bem_pn' """
         current_measurement = measurements.iloc[index]
-        comment_analysis = current_measurement[Columns.COMMENT_ANALYSIS.value]
-        comment_operation = current_measurement[Columns.COMMENT_OPERATION.value]
+        comment_analysis = current_measurement[Columns.COMMENT_ANALYSIS]
+        comment_operation = current_measurement[Columns.COMMENT_OPERATION]
         if comment_analysis != '' or comment_operation != '':
             SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.COMMENT_NOT_EMPTY)
             self.sewageStat.add_comment_not_empty()
 
     def check_mean_sewage_flow_present(self, sample_location, measurements: pd.DataFrame, index):
         current_measurement = measurements.iloc[index]
-        mean_sewage_flow = current_measurement[Columns.MEAN_SEWAGE_FLOW.value]
+        mean_sewage_flow = current_measurement[Columns.MEAN_SEWAGE_FLOW]
         if math.isnan(mean_sewage_flow) or mean_sewage_flow == 0:
             SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.MISSING_MEAN_SEWAGE_FLOW)
             self.sewageStat.add_mean_sewage_flow_empty()
@@ -87,7 +87,7 @@ class BiomarkerQC:
         biomarker_ratio_flags = last_N_measurements[CalculatedColumns.get_biomaker_ratio_flag(biomarker1, biomarker2)]
         last_N_measurements = last_N_measurements[SewageFlag.is_not_flag_set_for_series(biomarker_ratio_flags,
                                                                                         SewageFlag.BIOMARKER_RATIO_OUTLIER)]
-        biomarker_ratios = last_N_measurements[[Columns.DATE.value, biomarker1 + "/" + biomarker2, biomarker1, biomarker2]]
+        biomarker_ratios = last_N_measurements[[Columns.DATE, biomarker1 + "/" + biomarker2, biomarker1, biomarker2]]
         # remove empty ratios
         biomarker_ratios = biomarker_ratios.dropna()
         return biomarker_ratios
@@ -189,7 +189,7 @@ class BiomarkerQC:
                 num_valid_ratios_last_measurements = valid_ratios.sum()
                 if num_valid_ratios_last_measurements == 0:  # last samples where marked as outlier
                     biomarker_last_outliers = last_two_measurements[
-                        [Columns.DATE.value, biomarker1, biomarker2, biomarker1 + "/" + biomarker2]]
+                        [Columns.DATE, biomarker1, biomarker2, biomarker1 + "/" + biomarker2]]
                     self.logger.log.warn("[Report last two biomarker outliers] - [Sample location: '{}'] - "
                                          "The last two measurements for biomarker ratio '{}/{}' are marked as outliers.\n"
                                          "{}".format(sample_location, biomarker1, biomarker2, biomarker_last_outliers))

@@ -78,7 +78,7 @@ def plot_biomarker_outlier_summary(pdf_plotter, measurements_df, sample_location
         length = len(measurements_df[biomarker_ratio].dropna())
         if length > 0:
             dat = pd.DataFrame()
-            dat['date'] = measurements_df[Columns.DATE.value]
+            dat['date'] = measurements_df[Columns.DATE]
             dat['ratio/median ratio'] = measurements_df[biomarker_ratio]
             dat['biomarker_ratio'] = biomarker_ratio
             dat['outlier'] = measurements_df[CalculatedColumns.get_biomaker_ratio_flag(biomarker1, biomarker2)]
@@ -98,6 +98,7 @@ def plot_biomarker_outlier_summary(pdf_plotter, measurements_df, sample_location
         min_date = plot_frame['date'].min() + relativedelta(days=-10)
         max_date = plot_frame['date'].max() + relativedelta(days=10)
         g.set(xlim=(min_date, max_date))
+        g.set(yscale="log")
         g.map_dataframe(sns.scatterplot, x="date", y="ratio/median ratio", hue="outlier", palette=get_label_colors())
         # add outlier dates as text labels to each axis
         __add_outlier_date_labels2ax(g, labels_dict)
@@ -106,7 +107,8 @@ def plot_biomarker_outlier_summary(pdf_plotter, measurements_df, sample_location
         for label, color in color_dict.items():
             #legend_patches.append(matplotlib.patches.Patch(color=color, label=label))
             legend_patches.append(Line2D([0], [0], marker='o', markerfacecolor=color, color='white', linewidth=0, label=label, markersize=15))
-        plt.legend(handles=legend_patches, loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
+        if any(labels_dict.values()):
+            plt.legend(handles=legend_patches, loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
         g.set_titles(row_template='{row_name}', col_template='{col_name}')
         g.fig.subplots_adjust(top=0.9, bottom=0.1)
         g.fig.suptitle("Biomarker ratios for '{}' -  Outlier detection methods: {}".format(sample_location, outlier_detection_methods))
@@ -120,7 +122,7 @@ def plot_surrogatvirus (pdf_plotter, measurements_df, sample_location, outlier_d
     labels_dict = dict()
     for sVirus in Columns.get_surrogatevirus_columns():
         dat = pd.DataFrame()
-        dat['date'] = measurements_df[Columns.DATE.value]
+        dat['date'] = measurements_df[Columns.DATE]
         dat['value'] = measurements_df[sVirus]
         dat['type'] = sVirus
         dat['outlier'] = np.where(
@@ -137,7 +139,8 @@ def plot_surrogatvirus (pdf_plotter, measurements_df, sample_location, outlier_d
     g.set(xlim=(min_date, max_date))
     g.map_dataframe(sns.scatterplot, x="date", y="value", hue="outlier", palette=get_label_colors())
     __add_outlier_date_labels2ax(g, labels_dict)
-    plt.legend(loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
+    if any(labels_dict.values()):
+        plt.legend(loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
     g.set_titles(row_template='{row_name}', col_template='{col_name}')
     g.fig.subplots_adjust(top=0.9)
     g.fig.suptitle("Surrogatvirus quality control for '{}' -  Outlier detection methods: {}".format(sample_location, outlier_detection_methods))
@@ -150,11 +153,11 @@ def plot_surrogatvirus (pdf_plotter, measurements_df, sample_location, outlier_d
 def plot_water_quality(pdf_plotter, measurements_df, sample_location,  outlier_detection_methods):
     plot_frame = pd.DataFrame()
     labels_dict = dict()
-    for qual_type, outlier_flag, not_enough_flag in zip([Columns.AMMONIUM.value, Columns.CONDUCTIVITY.value],
+    for qual_type, outlier_flag, not_enough_flag in zip([Columns.AMMONIUM, Columns.CONDUCTIVITY],
                                                         [SewageFlag.AMMONIUM_OUTLIER, SewageFlag.CONDUCTIVITY_OUTLIER],
                                                         [SewageFlag.NOT_ENOUGH_AMMONIUM_VALUES, SewageFlag.NOT_ENOUGH_CONDUCTIVITY_VALUES]):
         dat = pd.DataFrame()
-        dat['date'] = measurements_df[Columns.DATE.value]
+        dat['date'] = measurements_df[Columns.DATE]
         dat['value'] = measurements_df[qual_type]
         dat['type'] = qual_type
         dat['outlier'] = measurements_df[CalculatedColumns.FLAG.value]
@@ -167,9 +170,10 @@ def plot_water_quality(pdf_plotter, measurements_df, sample_location,  outlier_d
     min_date = plot_frame['date'].min() + relativedelta(days=-10)
     max_date = plot_frame['date'].max() + relativedelta(days=10)
     g.set(xlim=(min_date, max_date))
-    g.map_dataframe(sns.scatterplot, x="date", y="value", hue="outlier", palette=get_label_colors())
+    g.map_dataframe(sns.scatterplot, x="date", y="value", hue="outlier", palette=get_label_colors(), legend="full")
     __add_outlier_date_labels2ax(g, labels_dict)
-    plt.legend(loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
+    if any(labels_dict.values()):
+        plt.legend(loc="upper center", bbox_to_anchor=(.5, -0.2), ncol=3, title=None, frameon=True)
     g.set_titles(row_template='{row_name}', col_template='{col_name}')
     g.fig.subplots_adjust(top=0.9)
     g.fig.suptitle("Water quality control for '{}' -  Outlier detection methods: {}".format(sample_location, outlier_detection_methods))
@@ -181,8 +185,8 @@ def plot_water_quality(pdf_plotter, measurements_df, sample_location,  outlier_d
 
 def plot_sewage_flow(pdf_plotter, measurements_df, sample_location):
     plot_frame = pd.DataFrame()
-    plot_frame['date'] = measurements_df[Columns.DATE.value]
-    plot_frame['value'] = measurements_df[Columns.MEAN_SEWAGE_FLOW.value]
+    plot_frame['date'] = measurements_df[Columns.DATE]
+    plot_frame['value'] = measurements_df[Columns.MEAN_SEWAGE_FLOW]
     plot_frame['outlier'] = np.where(
         (SewageFlag.is_flag_set_for_series(measurements_df[CalculatedColumns.FLAG.value], SewageFlag.SEWAGE_FLOW_HEAVY_PRECIPITATION)) |
         (SewageFlag.is_flag_set_for_series(measurements_df[CalculatedColumns.FLAG.value], SewageFlag.SEWAGE_FLOW_PROBABLE_TYPO)),
@@ -216,7 +220,7 @@ def plot_biomarker_normalization(pdf_plotter, measurements_df, sample_location):
     labels_dict = dict()
     for column_type in [CalculatedColumns.NORMALIZED_MEAN_BIOMARKERS.value, CalculatedColumns.BASE_REPRODUCTION_FACTOR.value]:
         dat = pd.DataFrame()
-        dat['date'] = measurements_df[Columns.DATE.value]
+        dat['date'] = measurements_df[Columns.DATE]
         dat['value'] = measurements_df[column_type]
         dat['type'] = column_type
         dat['outlier'] = np.where(
@@ -244,7 +248,7 @@ def plot_biomarker_normalization(pdf_plotter, measurements_df, sample_location):
 
 def plot_general_outliers(pdf_plotter, measurements_df, sample_location):
     plot_frame = pd.DataFrame()
-    plot_frame['date'] = measurements_df[Columns.DATE.value]
+    plot_frame['date'] = measurements_df[Columns.DATE]
     plot_frame['value'] = measurements_df[CalculatedColumns.NORMALIZED_MEAN_BIOMARKERS.value]
     plot_frame['outlier'] = measurements_df[CalculatedColumns.OUTLIER_REASON.value]
     plt.figure(figsize=(30, 10))
@@ -254,10 +258,11 @@ def plot_general_outliers(pdf_plotter, measurements_df, sample_location):
     g.set(xlim=(min_date, max_date))
     labels = get_general_outlier_date_labels(plot_frame, 'outlier')
     adjust_text(labels)
-    sns.move_legend(
-        g, loc="upper center",
-        bbox_to_anchor=(.5, -0.1), ncol=2, title=None, frameon=True
-    )
+    if len(labels) > 0:
+        sns.move_legend(
+            g, loc="upper center",
+            bbox_to_anchor=(.5, -0.1), ncol=2, title=None, frameon=True
+        )
     plt.title("Outliers - Normalized mean biomarkers for '{}'".format(sample_location), fontsize=22)
     plt.tight_layout()
     pdf_plotter.savefig()

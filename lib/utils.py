@@ -88,7 +88,7 @@ def is_outlier_local_outlier_factor(test_value: float, train_values: List[float]
     """
     X = np.array(train_values).reshape(-1, 1)
     neighbours = 20 if len(X) > 20 else len(X) - 1
-    lof_novelty = LocalOutlierFactor(n_neighbors=neighbours, novelty=True, contamination=contamination,).fit(X)
+    lof_novelty = LocalOutlierFactor(n_neighbors=neighbours, novelty=True, contamination=contamination, n_jobs=1).fit(X)
     test_value = np.array(test_value).reshape(1, -1)
     prediction = lof_novelty.predict(test_value)
     return prediction[0] == -1
@@ -126,7 +126,7 @@ def is_outlier_isolation_forest(test_value: float, train_values: List[float], co
     X = pd.DataFrame(train_values)
     X.rename(columns={X.columns[0]: 'samples'}, inplace=True)
     model = IsolationForest(n_estimators=100, warm_start=False, contamination=contamination,
-                            n_jobs=4)  # contamination="auto" else range should be (0, 0.5]
+                            n_jobs=1)  # contamination="auto" else range should be (0, 0.5]
     model.fit(X.values)
     test = np.array(test_value).reshape(1, -1)
     score = model.decision_function(test)
@@ -219,13 +219,13 @@ def get_last_N_month_and_days(measurements_df: pd.DataFrame, current_measurement
     :param additional_sewage_flag: Additional Sewage flag to filter for previous outliers; must be not set in flags
     :return: data frame with entries from last N month
     """
-    min_date = current_measurement[Columns.DATE.value]
+    min_date = current_measurement[Columns.DATE]
     if num_month > 0:
         min_date = min_date + dateutil.relativedelta.relativedelta(months=-num_month)
     if num_days > 0:
         min_date = min_date + dateutil.relativedelta.relativedelta(days=-num_days)
-    last_values = measurements_df[(measurements_df[Columns.DATE.value] >= min_date) &
-                                  (measurements_df[Columns.DATE.value] < current_measurement[Columns.DATE.value])]
+    last_values = measurements_df[(measurements_df[Columns.DATE] >= min_date) &
+                                  (measurements_df[Columns.DATE] < current_measurement[Columns.DATE])]
     # remove outliers based on sewage_flag -> filters values which do not have the flag
     if sewage_flag:
         last_values = last_values[SewageFlag.is_not_flag_set_for_series(last_values[CalculatedColumns.FLAG.value], sewage_flag)]

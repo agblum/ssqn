@@ -24,12 +24,12 @@ class SewageFlow:
         dry_flow, is_mean_dry_weather_flow_available = self.__is_mean_flow_above_dry_flow(sample_location, measurements, index)
 
     def __get_mean_flow_based_on_last_min_values(self, sample_location, measurements_df: pd.DataFrame, current_measurement):
-        last_measurements = measurements_df[measurements_df[Columns.DATE.value] < current_measurement[Columns.DATE.value]]
+        last_measurements = measurements_df[measurements_df[Columns.DATE] < current_measurement[Columns.DATE]]
         # omit samples where any sewage flow tag was set
         last_measurements = last_measurements[SewageFlag.is_not_flag_set_for_series(last_measurements[CalculatedColumns.FLAG.value], SewageFlag.SEWAGE_FLOW_HEAVY_PRECIPITATION)]
         last_measurements = last_measurements[SewageFlag.is_not_flag_set_for_series(last_measurements[CalculatedColumns.FLAG.value], SewageFlag.SEWAGE_FLOW_PROBABLE_TYPO)]
         last_measurements = last_measurements[SewageFlag.is_not_flag_set_for_series(last_measurements[CalculatedColumns.FLAG.value], SewageFlag.MISSING_MEAN_SEWAGE_FLOW)]
-        mean_sewage_flows = last_measurements[Columns.MEAN_SEWAGE_FLOW.value]
+        mean_sewage_flows = last_measurements[Columns.MEAN_SEWAGE_FLOW]
         if mean_sewage_flows.shape[0] < self.min_num_samples_for_mean_dry_flow:
             self.logger.log.debug("[Sewage flow] - [Sample location: '{}'] - Less than '{}' "
                                   "previous samples obtained. Skipping sewage flow QC...".format(sample_location, self.min_num_samples_for_mean_dry_flow))
@@ -59,7 +59,7 @@ class SewageFlow:
         if SewageFlag.is_not_flag(current_measurement[CalculatedColumns.FLAG.value], SewageFlag.MISSING_MEAN_SEWAGE_FLOW):
             dry_flow, is_mean_dry_weather_flow_available = self.__get_dry_flow(sample_location, measurements, current_measurement)
             if dry_flow:
-                current_mean_flow = current_measurement[Columns.MEAN_SEWAGE_FLOW.value]
+                current_mean_flow = current_measurement[Columns.MEAN_SEWAGE_FLOW]
                 # is the mean flow a factor of N (default: 9) higher than the dry weather flow --> probable typo
                 if (current_mean_flow / dry_flow) > self.mean_sewage_flow_above_typo_factor:
                     self.sewageStat.add_sewage_flow_outlier('probable_typo')

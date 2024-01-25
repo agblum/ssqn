@@ -23,15 +23,15 @@ class WaterQuality:
 
     def __detect_outliers_in_ammonium(self, sample_location, measurements: pd.DataFrame, index):
         current_measurement = measurements.iloc[index]
-        last_values = get_last_N_month_and_days(measurements, current_measurement, Columns.AMMONIUM.value,
+        last_values = get_last_N_month_and_days(measurements, current_measurement, Columns.AMMONIUM,
                                        self.water_quality_number_of_last_month, 0, SewageFlag.AMMONIUM_OUTLIER)
         enough_last_values = last_values.shape[0] >= self.min_number_of_last_measurements_for_water_qc
-        if current_measurement[Columns.AMMONIUM.value] and not math.isnan(current_measurement[Columns.AMMONIUM.value]):  # only if current value is not empty
+        if current_measurement[Columns.AMMONIUM] and not math.isnan(current_measurement[Columns.AMMONIUM]):  # only if current value is not empty
             if not enough_last_values:
                 self.sewageStat.add_water_quality_outlier("Ammonium", 'skipped')
                 SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.NOT_ENOUGH_AMMONIUM_VALUES)
             else:
-                is_outlier = detect_outliers(self.water_qc_outlier_statistics, last_values[Columns.AMMONIUM.value], current_measurement[Columns.AMMONIUM.value])
+                is_outlier = detect_outliers(self.water_qc_outlier_statistics, last_values[Columns.AMMONIUM], current_measurement[Columns.AMMONIUM])
                 if is_outlier:
                     SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.AMMONIUM_OUTLIER)
                     self.sewageStat.add_water_quality_outlier("Ammonium", 'failed')
@@ -43,15 +43,15 @@ class WaterQuality:
 
     def __detect_outliers_in_conductivity(self, sample_location, measurements: pd.DataFrame, index):
         current_measurement = measurements.iloc[index]
-        last_values = get_last_N_month_and_days(measurements, current_measurement, Columns.CONDUCTIVITY.value,
+        last_values = get_last_N_month_and_days(measurements, current_measurement, Columns.CONDUCTIVITY,
                                        self.water_quality_number_of_last_month, 0, SewageFlag.CONDUCTIVITY_OUTLIER)
         enough_last_values = last_values.shape[0] >= self.min_number_of_last_measurements_for_water_qc
-        if current_measurement[Columns.CONDUCTIVITY.value] and not math.isnan(current_measurement[Columns.CONDUCTIVITY.value]):  # only if current value is not empty
+        if current_measurement[Columns.CONDUCTIVITY] and not math.isnan(current_measurement[Columns.CONDUCTIVITY]):  # only if current value is not empty
             if not enough_last_values:
                 self.sewageStat.add_water_quality_outlier("Conductivity", 'skipped')
                 SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.NOT_ENOUGH_CONDUCTIVITY_VALUES)
             else:
-                is_outlier = detect_outliers(self.water_qc_outlier_statistics, last_values[Columns.CONDUCTIVITY.value], current_measurement[Columns.CONDUCTIVITY.value])
+                is_outlier = detect_outliers(self.water_qc_outlier_statistics, last_values[Columns.CONDUCTIVITY], current_measurement[Columns.CONDUCTIVITY])
                 if is_outlier:
                     SewageFlag.add_flag_to_index_column(measurements, index, CalculatedColumns.FLAG.value, SewageFlag.CONDUCTIVITY_OUTLIER)
                     self.sewageStat.add_water_quality_outlier("Conductivity", 'failed')

@@ -23,14 +23,9 @@ class Config:
         self.server = config['General']['server']
         self.authentication_endpoint = self.server + config['General']['authentication_endpoint']
 
-        self.sewage_get_all_samples_endpoint = self.server + config['General']['sewage_get_all_endpoint']
+        self.sewage_samples_endpoint = self.server + config['General']['sewage_samples_endpoint']
+        self.sewage_locations_endpoint = self.server + config['General']['sewage_locations_endpoint']
 
-        self.gis_url = config['ARCGIS']['gis_url']
-        self.gis_user = config['ARCGIS']['gis_user']
-        self.gis_password = config['ARCGIS']['gis_password']
-
-        self.basic_auth_username = config['BasicAuth']['user']
-        self.basic_auth_password = config['BasicAuth']['password']
 
         self.bay_voc_username = config['BayVOC']['user']
         self.bay_voc_password = config['BayVOC']['password']
