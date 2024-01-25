@@ -6,7 +6,7 @@ SSQN is completely written in Python 3. We recommend using python 3.8.
 
 To install SSQN using pip
 ```
-pip install git+https://github.com/axgraf/sewageQualityControl.git
+pip install git+https://github.com/agblum/sewageQualityControl.git
 ```
 
 ## Usage 
