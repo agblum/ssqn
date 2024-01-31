@@ -21,7 +21,7 @@ import lib.utils as utils
 import lib.statistics as sewageStat
 import lib.plotting as plotting
 import lib.database as db
-import lib.bay_voc as bayvoc
+
 import re
 
 
@@ -79,6 +79,7 @@ class SewageQuality:
         if self.input_file:
             self.sewage_samples_dict = utils.read_excel_input_files(self.input_file)
         elif self.config_file:
+            import lib.bay_voc as bayvoc
             config = Config(self.config_file)
             self.bayVOC = bayvoc.BayVoc(config)
             self.bayVOC.authenticate()
