@@ -279,7 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--no_plotting', action="store_true", help="Do not output any plots.")
     parser.add_argument('-r', '--rerun_all', action="store_true", help="Rerun the analysis on all samples.")
     parser.add_argument('-v', '--verbosity', action="count", help="Increase output verbosity.")
-    parser.add_argument('-q', '--quiet', action='store_true', help="Print litte output.")
+    parser.add_argument('-q', '--quiet', action='store_true', help="Print little output.")
 
     biomarker_qc_group = parser.add_argument_group("Biomarker quality control")
     biomarker_qc_group.add_argument('--biomarker_outlier_statistics', metavar="METHOD", default=['iqr', 'lof'], nargs='+',

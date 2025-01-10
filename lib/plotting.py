@@ -1,5 +1,7 @@
 # Created by alex at 28.06.23
 import itertools
+import os.path
+
 from dateutil.relativedelta import relativedelta
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -48,8 +50,12 @@ def get_general_outlier_date_labels(plot_frame, outlier_col='outlier'):
     for index, current_row in plot_frame.iterrows():
         if current_row[outlier_col] != "":
             date = current_row['date'].strftime("%Y-%m-%d")
-            t = plt.text(current_row['date'], current_row['value'], date, size='xx-small', color='black', horizontalalignment='right', rotation=0)
-            labels.append(t)
+            if True:
+                #t = plt.text(current_row['date'], current_row['value'], date, size='small', color='black', horizontalalignment='right', rotation=0)
+                labels.append(current_row['value'])
+            else:
+                t = plt.text(current_row['date'], current_row['value'], date, size='xx-small', color='black', horizontalalignment='right', rotation=0)
+                labels.append(t)
     return labels
 
 def get_date_outlier_labels_by_value(plot_frame, outlier_col='outlier', value='outlier'):
@@ -246,27 +252,181 @@ def plot_biomarker_normalization(pdf_plotter, measurements_df, sample_location):
     plt.close()
 
 
+############# FOR PAPER ######################
+from matplotlib.markers import MarkerStyle
+
+from collections import defaultdict
+import matplotlib.cm as cm
+
+num_categories = 15
+color_palette = sns.color_palette("tab20", n_colors=15)
+#color_palette = cm.get_cmap('viridis', num_categories)
+
+outlier_markers = defaultdict()
+outlier_sizes = defaultdict()
+outlier_colors = defaultdict()
+marker_counter = 0  # Zähler für Marker
+color_counter = 1
+
+
+def get_next_marker():
+    """Gibt den nächsten Marker zurück und erhöht den Zähler"""
+    global marker_counter
+    num_sides = 3 + (marker_counter % 10)  # Beginne bei 3 Seiten und erhöhe
+    marker_counter += 1
+    return num_sides
+
+def get_next_color():
+    """Gibt die nächste Farbe aus der Viridis-Palette zurück und erhöht den Farbindex"""
+    global color_counter, num_categories
+    num_colors = 256  # Viridis hat 256 Farben
+    #num_colors = len(viridis.colors)  # Die Anzahl der verfügbaren Farben in der Viridis-Palette
+    color = color_palette[color_counter % num_categories]  # Farbzuweisung aus Viridis
+    color_counter += 1  # Farbindex erhöhen
+    return color
+
+def assign_markers(plot_frame, point_size=300):
+    """Weist jedem Ausreißertyp einen Marker zu"""
+    global outlier_markers, outlier_sizes, outlier_colors, color_index
+    unique_outliers = plot_frame['outlier'].dropna().unique()
+
+    for outlier in unique_outliers:
+        if outlier == "Not an outlier":
+            # Leerer Ausreißertyp bekommt einen Punkt
+            outlier_markers['Not an outlier'] = 'o'
+            outlier_sizes['Not an outlier'] = point_size
+            outlier_colors['Not an outlier'] = color_palette[0]
+        elif outlier not in outlier_markers:
+            # Wenn der Ausreißertyp noch keinen Marker hat, dann den nächsten verfügbaren Marker zuweisen
+            num_sides = get_next_marker()  # Nächster Marker
+            outlier_markers[outlier] = generate_marker(num_sides, outlier, point_size)
+            outlier_colors[outlier] = get_next_color()
+
+
+def generate_marker(num_sides, outlier, point_size):
+    """
+    Erzeugt einen Marker mit einer bestimmten Anzahl von Seiten (num_sides) und Rotation (angle).
+    :param num_sides: Anzahl der Ecken des Markers (z.B. 3 für Dreieck, 4 für Quadrat)
+    :param angle: Optionaler Rotationswinkel des Markers in Grad.
+    :return: Ein MarkerStyle-Objekt für matplotlib.
+    """
+    # Marker-Formen für unterschiedliche Anzahl an Seiten
+    if num_sides == 3:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("^")  # Dreieck
+    elif num_sides == 4:
+        outlier_sizes[outlier] = point_size + 80
+        return MarkerStyle("s")  # Quadrat
+    elif num_sides == 5:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("P")  # Pentagon
+    elif num_sides == 6:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("H")  # Sechseck
+    elif num_sides == 7:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("X")  # Kreuz
+    elif num_sides == 8:
+        outlier_sizes[outlier] = point_size + 500
+        return MarkerStyle("*")  # Stern
+    elif num_sides == 9:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("<")  # Pfeil nach links
+    elif num_sides == 10:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle(">")  # Pfeil nach rechts
+    elif num_sides == 11:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("D")  # Rhombus (Diamant)
+    elif num_sides == 12:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("d")  # Kleiner Rhombus
+    elif num_sides == 13:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("1")  # Triangel down
+    elif num_sides == 14:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("2")  # Triangel up
+    elif num_sides == 15:
+        outlier_sizes[outlier] = point_size + 100
+        return MarkerStyle("3")  # Triangel links
+    else:
+        return MarkerStyle("o")  # Standard-Kreis (für andere Fälle)
+############# END FOR PAPER ######################
+
+
 def plot_general_outliers(pdf_plotter, measurements_df, sample_location):
     plot_frame = pd.DataFrame()
     plot_frame['date'] = measurements_df[Columns.DATE]
     plot_frame['value'] = measurements_df[CalculatedColumns.NORMALIZED_MEAN_BIOMARKERS.value]
-    plot_frame['outlier'] = measurements_df[CalculatedColumns.OUTLIER_REASON.value]
-    plt.figure(figsize=(30, 10))
-    g = sns.scatterplot(data=plot_frame, x="date", y="value", hue="outlier")
-    min_date = plot_frame['date'].min() + relativedelta(days=-10)
-    max_date = plot_frame['date'].max() + relativedelta(days=10)
-    g.set(xlim=(min_date, max_date))
-    labels = get_general_outlier_date_labels(plot_frame, 'outlier')
-    adjust_text(labels)
-    if len(labels) > 0:
-        sns.move_legend(
-            g, loc="upper center",
-            bbox_to_anchor=(.5, -0.1), ncol=2, title=None, frameon=True
+    plot_frame['outlier'] = measurements_df[CalculatedColumns.OUTLIER_REASON.value].replace('', 'Not an outlier')
+    if True:
+        plt.figure(figsize=(30, 15), facecolor='white')
+        sns.set_style("ticks")
+        global outlier_markers, outlier_sizes, outlier_colors
+        assign_markers(plot_frame, point_size=300)
+        test1, test2, test3 = outlier_markers, outlier_sizes, outlier_colors
+        g = sns.scatterplot(data=plot_frame, x="date", y="value", hue="outlier",
+                            style="outlier",  markers=outlier_markers, size="outlier", sizes=outlier_sizes, palette=outlier_colors)
+
+        # Hintergrundfarbe weiß und Gitternetzlinien entfernen
+     #   g.set_facecolor("white")
+        #g.grid(True, color="white", linestyle="--", linewidth=0.5)
+
+        g.tick_params(
+            axis='both', which='both', direction='in',  # Ticks nach innen
+            length=10, width=2, colors='black',  # Größe und Farbe der Ticks
+            labelsize=24
         )
-    plt.title("Outliers - Normalized mean biomarkers for '{}'".format(sample_location), fontsize=22)
-    plt.tight_layout()
-    pdf_plotter.savefig()
-    plt.cla()
-    plt.close()
+        min_date = plot_frame['date'].min() + relativedelta(days=-10)
+        max_date = plot_frame['date'].max() + relativedelta(days=10)
+        g.set(xlim=(min_date, max_date))
+
+        g.set_xlabel("", fontsize=26)
+        g.set_ylabel("Value", fontsize=26)
+        #g.tick_params(axis='both', which='major', labelsize=24)
+        g.yaxis.get_offset_text().set_fontsize(20)
+        labels = get_general_outlier_date_labels(plot_frame, 'outlier')
+        #adjust_text(labels)
+        if len(labels) > 0:
+            sns.move_legend(
+                g, loc="upper center",
+                bbox_to_anchor=(.5, -0.1), ncol=2, title=None, frameon=True, markerscale=1
+            )
+            for text in g.legend_.get_texts():  # Legenden-Beschriftungen vergrößern
+                text.set_fontsize(24)
+        else:
+            labels = get_general_outlier_date_labels(plot_frame, 'outlier')
+
+        # plt.title("Outliers - Normalized mean biomarkers for '{}'".format(sample_location), fontsize=22)
+        output_folder = "svg_plots"
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, sample_location + "_plot_outliers.svg"), format="svg")
+        pdf_plotter.savefig()
+        plt.cla()
+        plt.close()
+
+
+    else:
+        plt.figure(figsize=(30, 10))
+        g = sns.scatterplot(data=plot_frame, x="date", y="value", hue="outlier")
+        min_date = plot_frame['date'].min() + relativedelta(days=-10)
+        max_date = plot_frame['date'].max() + relativedelta(days=10)
+        g.set(xlim=(min_date, max_date))
+        labels = get_general_outlier_date_labels(plot_frame, 'outlier')
+        adjust_text(labels)
+        if len(labels) > 0:
+            sns.move_legend(
+                g, loc="upper center",
+                bbox_to_anchor=(.5, -0.2), ncol=2, title=None, frameon=True
+            )
+
+        plt.title("Outliers - Normalized mean biomarkers for '{}'".format(sample_location), fontsize=22)
+        plt.tight_layout()
+        pdf_plotter.savefig()
+        plt.cla()
+        plt.close()
 
 
