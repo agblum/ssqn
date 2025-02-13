@@ -19,7 +19,7 @@ ssqn.py --help
 SSQN can be used and adapted for non-commercial or commercial usage following the CC-BY license. Credit should be given to the authors by including the following citation
 
 ```
-Development of a GIS Data Model to Report Biomarker Results to Health Authorities and the Public. Kau et al. 2024.
+From wastewater to GIS-based reporting: the ANNA-WES data model for reliable biomarker tracking in wastewater and environmental surveillance. Kau & Uchaikina et al., 2025
 
 ```
 
