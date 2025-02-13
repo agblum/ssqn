@@ -23,4 +23,6 @@ From wastewater to GIS-based reporting: the ANNA-WES data model for reliable bio
 
 ```
 
+## Flowchart
 
+![Flow_chart_SSQN.tif](data/img/Flow_chart_SSQN.png)
