@@ -27,7 +27,7 @@ import re
 
 class SewageQuality:
 
-    def __init__(self, input_file, config_file, output_folder, verbosity, quiet, rerun_all, no_plots, biomarker_outlier_statistics,
+    def __init__(self, input_file, output_folder, verbosity, quiet, rerun_all, no_plots, biomarker_outlier_statistics,
                  min_biomarker_threshold, min_number_biomarkers_for_outlier_detection,
                  max_number_biomarkers_for_outlier_detection, report_number_of_biomarker_outlier, periode_month_surrogatevirus,
                  surrogatevirus_outlier_statistics, min_number_surrogatevirus_for_outlier_detection,
@@ -38,7 +38,6 @@ class SewageQuality:
                   ):
 
         self.input_file = input_file
-        self.config_file = config_file
         self.sewage_samples = None
         self.output_folder = output_folder
         self.verbosity = verbosity
@@ -78,13 +77,6 @@ class SewageQuality:
     def __load_data(self):
         if self.input_file:
             self.sewage_samples_dict = utils.read_excel_input_files(self.input_file)
-        elif self.config_file:
-            import lib.bay_voc as bayvoc
-            config = Config(self.config_file)
-            self.bayVOC = bayvoc.BayVoc(config)
-            self.bayVOC.authenticate()
-            self.bayVOC.get_sewage_sample_data()
-            self.sewage_samples_dict = self.bayVOC.iterate_locations()
         self.sewage_plants2trockenwetterabfluss = dict()
 
     def __initialize(self):
@@ -256,9 +248,6 @@ class SewageQuality:
                 self.database.add_sewage_location2db(sample_location, measurements)
                 self.logger.log.info("Export '{}' to excel file...".format(sample_location))
                 self.save_dataframe(sample_location, measurements)
-                if self.config_file:
-                    self.bayVOC.post_normalized_sewage_samples(sample_location, measurements)
-
 
 
 
@@ -269,10 +258,7 @@ if __name__ == '__main__':
         epilog="author: Dr. Alexander Graf (graf@genzentrum.lmu.de)", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-i', '--input', metavar="FILE", type=str,
                         help="Specifiy input excel file with biomarker values",
-                        required=False)
-    parser.add_argument('-c', '--config', metavar="FILE", type=str,
-                        help="Config file for DB connections",
-                        required=False)
+                        required=True)
     parser.add_argument('-o', '--output_folder', metavar="FOLDER", default="sewage_qc", type=str,
                         help="Specifiy output folder. (default folder: 'sewage_qc')",
                         required=False)
@@ -393,7 +379,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    sewageQuality = SewageQuality(args.input, args.config, args.output_folder, args.verbosity, args.quiet, args.rerun_all, args.no_plotting,
+    sewageQuality = SewageQuality(args.input, args.output_folder, args.verbosity, args.quiet, args.rerun_all, args.no_plotting,
                                   args.biomarker_outlier_statistics, args.biomarker_min_threshold,
                                   args.min_number_biomarkers_for_outlier_detection,
                                   args.max_number_biomarkers_for_outlier_detection,
